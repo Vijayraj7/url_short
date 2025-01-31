@@ -12,7 +12,7 @@ app.use(cors({ origin: 'https://marketalert.in' }));
 
 app.use(express.json());
 
-
+// Mongo DB Connection
 mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
@@ -38,6 +38,7 @@ const urlSchema = new mongoose.Schema({
 const Url = mongoose.model("Url", urlSchema);
 
 
+// Url short route
 app.post("/api/shorten", async (req, res) => {
   const { longUrl, customAlias, topic, email } = req.body;
   if (!longUrl) return res.status(400).json({ error: "longUrl is required" });
@@ -72,6 +73,7 @@ app.get("/shorten/:alias", async (req, res) => {
 });
 
 
+// analytics by email
 app.get("/api/urls/by-email/:email", async (req, res) => {
   const { email } = req.params;
   const urls = await Url.find({ email });
@@ -103,6 +105,7 @@ app.get("/api/analytics/:alias", async (req, res) => {
 });
 
 
+// analytics by topic
 app.get("/api/analytics/topic/:topic", async (req, res) => {
   const { topic } = req.params;
   const urls = await Url.find({ topic });

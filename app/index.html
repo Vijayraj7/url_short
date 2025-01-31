@@ -102,7 +102,7 @@
             const customAlias = document.getElementById("customAlias").value;
             const topic = document.getElementById("topic").value;
 
-
+            // url short api
             const response = await fetch("/url_api/api/shorten", {
                 method: "POST",
                 headers: {
@@ -126,6 +126,7 @@
             const alias = document.getElementById("aliasInput").value;
 
 
+            // analytics api
             const response = await fetch(`/url_api/api/analytics/${alias}`, {
                 method: "GET",
                 headers: {
