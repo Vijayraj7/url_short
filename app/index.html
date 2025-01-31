@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .container { max-width: 400px; margin: auto; }
+        input, button { display: block; width: 100%; margin: 10px 0; padding: 8px; }
+        #shortUrl { margin-top: 10px; }
+        #urlForm { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>URL Shortener</h2>
+
+        <!-- Google Sign-In button -->
+        <div id="g_id_onload"
+             data-client_id="898296056927-uqv6tfofg3ofjns0tvp2g498m1be13v3.apps.googleusercontent.com"
+             data-callback="handleLogin"
+             data-auto_prompt="false">
+        </div>
+
+        <div id="login-btn">
+            <div class="g_id_signin" data-type="standard"></div>
+        </div>
+
+        <!-- URL shortening form (hidden until login) -->
+        <div id="urlForm">
+            <input type="url" id="longUrl" placeholder="Enter long URL" required>
+            <input type="text" id="customAlias" placeholder="Custom alias (optional)">
+            <input type="text" id="topic" placeholder="Topic (optional)">
+            <button onclick="shortenUrl()">Shorten</button>
+            <p id="shortUrl"></p>
+        </div>
+    </div>
+
+    <script>
+        let jwtToken = '';
+
+        // This function is triggered after a successful Google Sign-In
+        function handleLogin(response) {
+            console.log("Google Sign-In Success:", response);
+
+            // Get the JWT token from the Google response and store it
+            jwtToken = response.credential;
+            console.log("JWT Token:", jwtToken);
+
+            // Show the URL form after login
+            document.getElementById("urlForm").style.display = "block";
+        }
+
+        // Function to shorten the URL by calling the server-side API
+        async function shortenUrl() {
+            const longUrl = document.getElementById("longUrl").value;
+            const customAlias = document.getElementById("customAlias").value;
+            const topic = document.getElementById("topic").value;
+
+            // Call the backend to shorten the URL
+            const response = await fetch("/url_api/api/shorten", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${jwtToken}`,  // Include JWT token for authentication
+                },
+                body: JSON.stringify({ longUrl, customAlias, topic })
+            });
+
+            // Handle the response and display the short URL
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById("shortUrl").innerHTML = `Short URL: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>`;
+            } else {
+                document.getElementById("shortUrl").innerHTML = `Error: ${data.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
