@@ -1,27 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>URL Shortener</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 400px; margin: auto; }
-        input, button { display: block; width: 100%; margin: 10px 0; padding: 8px; }
-        #shortUrl { margin-top: 10px; }
-        #urlForm { display: none; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: auto;
+        }
+
+        input,
+        button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+        }
+
+        #shortUrl {
+            margin-top: 10px;
+        }
+
+        #urlForm {
+            display: none;
+        }
+
+        #analytics {
+            margin-top: 20px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h2>URL Shortener</h2>
 
         <!-- Google Sign-In button -->
-        <div id="g_id_onload"
-             data-client_id="898296056927-uqv6tfofg3ofjns0tvp2g498m1be13v3.apps.googleusercontent.com"
-             data-callback="handleLogin"
-             data-auto_prompt="false">
+        <div id="g_id_onload" data-client_id="898296056927-uqv6tfofg3ofjns0tvp2g498m1be13v3.apps.googleusercontent.com"
+            data-callback="handleLogin" data-auto_prompt="false">
         </div>
 
         <div id="login-btn">
@@ -36,47 +61,94 @@
             <button onclick="shortenUrl()">Shorten</button>
             <p id="shortUrl"></p>
         </div>
+
+        <!-- Analytics section (hidden initially) -->
+        <div id="analytics" style="display: none;">
+            <h3>Analytics</h3>
+            <input type="text" id="aliasInput" placeholder="Enter alias to fetch analytics">
+            <button onclick="getAnalytics()">Get Analytics</button>
+            <div id="analyticsData"></div>
+        </div>
     </div>
 
     <script>
         let jwtToken = '';
+        let userEmail = '';
 
-        // This function is triggered after a successful Google Sign-In
+
         function handleLogin(response) {
             console.log("Google Sign-In Success:", response);
 
-            // Get the JWT token from the Google response and store it
+
             jwtToken = response.credential;
             console.log("JWT Token:", jwtToken);
 
-            // Show the URL form after login
-            document.getElementById("urlForm").style.display = "block";
+
+            fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=' + jwtToken)
+                .then(res => res.json())
+                .then(data => {
+                    userEmail = data.email;
+                    console.log("User Email:", userEmail);
+
+
+                    document.getElementById("urlForm").style.display = "block";
+                    document.getElementById("analytics").style.display = "block";
+                });
         }
 
-        // Function to shorten the URL by calling the server-side API
+
         async function shortenUrl() {
             const longUrl = document.getElementById("longUrl").value;
             const customAlias = document.getElementById("customAlias").value;
             const topic = document.getElementById("topic").value;
 
-            // Call the backend to shorten the URL
+
             const response = await fetch("/url_api/api/shorten", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${jwtToken}`,  // Include JWT token for authentication
+                    "Authorization": `Bearer ${jwtToken}`,
                 },
-                body: JSON.stringify({ longUrl, customAlias, topic })
+                body: JSON.stringify({ longUrl, customAlias, topic, email: userEmail })
             });
 
-            // Handle the response and display the short URL
+
             const data = await response.json();
             if (response.ok) {
                 document.getElementById("shortUrl").innerHTML = `Short URL: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>`;
             } else {
-                document.getElementById("shortUrl").innerHTML = `Error: ${data.message}`;
+                document.getElementById("shortUrl").innerHTML = `Error: ${data.error}`;
+            }
+        }
+
+
+        async function getAnalytics() {
+            const alias = document.getElementById("aliasInput").value;
+
+
+            const response = await fetch(`/url_api/api/analytics/${alias}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${jwtToken}`,
+                }
+            });
+
+            const data = await response.json();
+            const analyticsDiv = document.getElementById("analyticsData");
+
+            if (response.ok) {
+                analyticsDiv.innerHTML = `
+                    <p>Total Clicks: ${data.totalClicks}</p>
+                    <p>Unique Users: ${data.uniqueUsers}</p>
+                    <p>Clicks by Date: ${JSON.stringify(data.clicksByDate)}</p>
+                    <p>Operating System Usage: ${JSON.stringify(data.osType)}</p>
+                    <p>Device Type Usage: ${JSON.stringify(data.deviceType)}</p>
+                `;
+            } else {
+                analyticsDiv.innerHTML = `Error: ${data.error}`;
             }
         }
     </script>
 </body>
+
 </html>
